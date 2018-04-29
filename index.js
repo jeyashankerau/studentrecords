@@ -88,9 +88,39 @@ rapi.post('/api/register',function(req, res){
 });
 
 rapi.post('/api/retrievefornotifications',function(req, res){
+    let teacher = req.body.teacher;
+    let notif = req.body.notification.split(' @');
+    let students = notif.slice(1,notif.length);
+    console.log(students);
+   
     
+    let slctStmt = 'select Student from TeachingAssociation where Teacher = "' + teacher + '"';    
+    db.each(slctStmt,function(err, row){
+        console.log("2." + row.Student);
+        students.push(row.Student);
+    });
+    let sltStmt = 'select email from Students where suspended = 1';
+    let suspendedStudents = [];
+    db.each(sltStmt,function(err, row){
+        suspendedStudents.push(row.email);        
+    });
+    let studentsTobeRemoved = [];
+    for(let student of students){
+        if(suspendedStudents.includes(student)){
+            studentsTobeRemoved.push(student);
+        }
+    }
+    for(let studenttbRmvd of studentsTobeRemoved){
+        let index = students.indexOf(studenttbRmvd);
+        if (index > -1) {
+            students.splice(index, 1);
+        }        
+    }
+    let notifObj = {};
+    notifObj.recipients = students;
+    res.status(200).send(notifObj);
 });
 
-rapi.listen(3000);
+rapi.listen(process.env.PORT || 3000);
 
 console.log("Submit GET or POST to http://localhost:3000/data");
